@@ -1,0 +1,7 @@
+# requirements.txt
+Django==6.0.4
+python-dateutil>=2.8.2
+pytest>=8.0.0
+pytest-django>=4.8.0
+ruff>=0.4.0
+tzdata>=2024.1 ; platform_system=="Windows"
