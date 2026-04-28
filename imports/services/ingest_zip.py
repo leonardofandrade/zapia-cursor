@@ -8,7 +8,6 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 from zipfile import ZipFile
 
-from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
@@ -42,6 +41,7 @@ class IngestSummary:
 def ingest_whatsapp_zip(
     zip_path: str,
     *,
+    output_dir: str,
     timezone_name: str = "America/Fortaleza",
     chat_name: str | None = None,
     dry_run: bool = False,
@@ -165,7 +165,7 @@ def ingest_whatsapp_zip(
                     continue
                 media_to_message.setdefault(ref, persisted)
 
-        media_root = Path(settings.MEDIA_ROOT)
+        media_root = Path(output_dir)
         chat_slug = _slugify(chat.title)
         referenced = {r for r in all_media_refs if r != "<Media omitted>"}
         target_members = [m for m in media_members if Path(m).name in referenced] or media_members
@@ -188,7 +188,7 @@ def ingest_whatsapp_zip(
                         "chat": chat,
                         "message": media_to_message.get(original_name),
                         "original_name": original_name,
-                        "stored_path": str(relative).replace("\\", "/"),
+                        "stored_path": str((media_root / relative).resolve()),
                         "mime": guessed_mime,
                         "size_bytes": len(payload),
                     },

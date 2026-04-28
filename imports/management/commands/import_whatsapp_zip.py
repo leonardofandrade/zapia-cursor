@@ -13,6 +13,11 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("zip_path", type=str, help="Caminho para o arquivo ZIP exportado")
+        parser.add_argument(
+            "--output-dir",
+            required=True,
+            help="Pasta onde os arquivos de midia extraidos serao gravados",
+        )
         parser.add_argument("--timezone", default="America/Fortaleza", help="Timezone de parsing")
         parser.add_argument("--chat-name", default=None, help="Nome de chat para override")
         parser.add_argument("--dry-run", action="store_true", help="Apenas parseia sem persistir")
@@ -27,6 +32,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.WARNING(f"Iniciando importacao de: {safe_zip_path}"))
         summary = ingest_whatsapp_zip(
             zip_path,
+            output_dir=options["output_dir"],
             timezone_name=options["timezone"],
             chat_name=options["chat_name"],
             dry_run=options["dry_run"],
