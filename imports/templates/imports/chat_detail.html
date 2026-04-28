@@ -30,26 +30,53 @@
 </div>
 
 <div class="card">
-    <h2>Mensagens recentes (100)</h2>
+    <h2>Conversa (ultimas 100 mensagens)</h2>
     {% if recent_messages %}
-    <table>
-        <thead>
-            <tr>
-                <th>Data/Hora</th>
-                <th>Participante</th>
-                <th>Texto</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for message in recent_messages %}
-            <tr>
-                <td>{{ message.timestamp }}</td>
-                <td>{% if message.participant %}{{ message.participant.display_name }}{% else %}Sistema{% endif %}</td>
-                <td>{{ message.text|default:"-" }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="chat-shell">
+        {% for message in recent_messages %}
+        <div class="message-row {% if message.is_system %}system{% endif %}">
+            <div class="bubble {% if message.is_system %}system{% endif %}">
+                {% if not message.is_system %}
+                <div class="bubble-header">
+                    {% if message.participant %}{{ message.participant.display_name }}{% else %}Sistema{% endif %}
+                </div>
+                {% endif %}
+
+                {% if message.text and message.text != "<Media omitted>" %}
+                <div>{{ message.text|linebreaksbr }}</div>
+                {% endif %}
+
+                <div class="bubble-media">
+                    {% if message.media_assets.all %}
+                        {% for media in message.media_assets.all %}
+                            {% if media.mime|slice:":6" == "image/" %}
+                                <img src="{% url 'imports:media_asset_content' media.id %}" alt="{{ media.original_name }}" />
+                            {% elif media.mime|slice:":6" == "video/" %}
+                                <video controls>
+                                    <source src="{% url 'imports:media_asset_content' media.id %}" type="{{ media.mime }}">
+                                    Seu navegador nao suporta video.
+                                </video>
+                            {% elif media.mime|slice:":6" == "audio/" %}
+                                <audio controls>
+                                    <source src="{% url 'imports:media_asset_content' media.id %}" type="{{ media.mime }}">
+                                    Seu navegador nao suporta audio.
+                                </audio>
+                            {% else %}
+                                <a href="{% url 'imports:media_asset_content' media.id %}" target="_blank" rel="noreferrer">
+                                    Abrir {{ media.original_name }}
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    {% elif "<Media omitted>" in message.media_refs %}
+                        <span class="muted">Midia mencionada, mas arquivo nao disponivel.</span>
+                    {% endif %}
+                </div>
+
+                <div class="bubble-meta">{{ message.timestamp|date:"d/m/Y H:i" }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
     {% else %}
     <p>Sem mensagens.</p>
     {% endif %}

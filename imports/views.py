@@ -1,4 +1,5 @@
 from django.db.models import Count
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, render
 
 from imports.models import Chat, Contact, MediaAsset, Message, Participant
@@ -30,7 +31,11 @@ def chat_list(request):
 def chat_detail(request, chat_id: int):
     chat = get_object_or_404(Chat, id=chat_id)
     participants = chat.participants.select_related("contact").prefetch_related("links").order_by("display_name")
-    recent_messages = chat.messages.select_related("participant").order_by("-timestamp")[:100]
+    recent_messages = list(
+        chat.messages.select_related("participant")
+        .prefetch_related("media_assets")
+        .order_by("-timestamp")[:100]
+    )[::-1]
     return render(
         request,
         "imports/chat_detail.html",
@@ -53,3 +58,12 @@ def contact_lookup(request):
             "results": results,
         },
     )
+
+
+def media_asset_content(request, media_id: int):
+    media = get_object_or_404(MediaAsset, id=media_id)
+    if not media.payload:
+        raise Http404("Midia sem payload armazenado")
+    response = HttpResponse(bytes(media.payload), content_type=media.mime or "application/octet-stream")
+    response["Content-Disposition"] = f'inline; filename="{media.original_name}"'
+    return response
