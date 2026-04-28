@@ -1,0 +1,30 @@
+{% extends "imports/base.html" %}
+
+{% block content %}
+<h1>Chats</h1>
+
+{% if chats %}
+<table>
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>Participantes</th>
+            <th>Mensagens</th>
+            <th>Acoes</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for chat in chats %}
+        <tr>
+            <td>{{ chat.title }}</td>
+            <td>{{ chat.participants_count }}</td>
+            <td>{{ chat.messages_count }}</td>
+            <td><a href="{% url 'imports:chat_detail' chat.id %}">Abrir</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Nenhum chat encontrado.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "imports/base.html" %}
+
+{% block content %}
+<h1>ZapIA - Painel simples</h1>
+<p class="muted">Projeto em desenvolvimento: consultas basicas do banco.</p>
+
+<div class="stats">
+    <div class="stat"><strong>Chats:</strong> {{ stats.chats }}</div>
+    <div class="stat"><strong>Participantes:</strong> {{ stats.participants }}</div>
+    <div class="stat"><strong>Mensagens:</strong> {{ stats.messages }}</div>
+    <div class="stat"><strong>Midias:</strong> {{ stats.media_assets }}</div>
+</div>
+
+<h2>Chats recentes</h2>
+{% if recent_chats %}
+<table>
+    <thead>
+        <tr>
+            <th>Chat</th>
+            <th>Mensagens</th>
+            <th>Acoes</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for chat in recent_chats %}
+        <tr>
+            <td>{{ chat.title }}</td>
+            <td>{{ chat.messages_count }}</td>
+            <td><a href="{% url 'imports:chat_detail' chat.id %}">Ver detalhes</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Nenhum chat importado ainda.</p>
+{% endif %}
+{% endblock %}

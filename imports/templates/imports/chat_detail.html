@@ -1,0 +1,54 @@
+{% extends "imports/base.html" %}
+
+{% block content %}
+<h1>{{ chat.title }}</h1>
+
+<div class="card">
+    <h2>Participantes e links</h2>
+    {% if participants %}
+        {% for participant in participants %}
+        <p>
+            <strong>{{ participant.display_name }}</strong>
+            {% if participant.links.all %}
+                <br>
+                {% for link in participant.links.all %}
+                    <a href="{{ link.url }}" target="_blank" rel="noreferrer">
+                        {% if link.label %}{{ link.label }}{% else %}{{ link.url }}{% endif %}
+                    </a>{% if not forloop.last %} | {% endif %}
+                {% endfor %}
+            {% else %}
+                <span class="muted"> - sem links</span>
+            {% endif %}
+        </p>
+        {% endfor %}
+    {% else %}
+    <p>Sem participantes.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Mensagens recentes (100)</h2>
+    {% if recent_messages %}
+    <table>
+        <thead>
+            <tr>
+                <th>Data/Hora</th>
+                <th>Participante</th>
+                <th>Texto</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for message in recent_messages %}
+            <tr>
+                <td>{{ message.timestamp }}</td>
+                <td>{% if message.participant %}{{ message.participant.display_name }}{% else %}Sistema{% endif %}</td>
+                <td>{{ message.text|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Sem mensagens.</p>
+    {% endif %}
+</div>
+{% endblock %}

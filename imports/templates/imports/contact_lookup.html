@@ -1,0 +1,36 @@
+{% extends "imports/base.html" %}
+
+{% block content %}
+<h1>Buscar contato</h1>
+
+<form method="get">
+    <input type="text" name="q" value="{{ query }}" placeholder="Ex.: Alice" />
+    <button type="submit">Buscar</button>
+</form>
+
+{% if query %}
+    <h2>Resultado para "{{ query }}"</h2>
+    {% if results %}
+    <table>
+        <thead>
+            <tr>
+                <th>Contato</th>
+                <th>Chat/Grupo</th>
+                <th>Mensagens</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in results %}
+            <tr>
+                <td>{{ row.participant_name }}</td>
+                <td>{{ row.chat_title }}</td>
+                <td>{{ row.messages_count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Nenhum resultado encontrado.</p>
+    {% endif %}
+{% endif %}
+{% endblock %}

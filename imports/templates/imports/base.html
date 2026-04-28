@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ZapIA</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 24px; color: #1f2937; }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 12px; text-decoration: none; color: #2563eb; }
+        table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+        th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+        th { background: #f3f4f6; }
+        .muted { color: #6b7280; }
+        .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+        .stat { border: 1px solid #d1d5db; border-radius: 6px; padding: 10px; min-width: 140px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="{% url 'imports:home' %}">Inicio</a>
+        <a href="{% url 'imports:chat_list' %}">Chats</a>
+        <a href="{% url 'imports:contact_lookup' %}">Buscar Contato</a>
+        <a href="/admin/">Admin</a>
+    </nav>
+    {% block content %}{% endblock %}
+</body>
+</html>
