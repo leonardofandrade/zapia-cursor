@@ -42,6 +42,12 @@ Comando principal:
 python manage.py import_whatsapp_zip /caminho/arquivo.zip --timezone America/Fortaleza --chat-name "Grupo X"
 ```
 
+Consultar chats/grupos por contato:
+
+```bash
+python manage.py find_contact_chats "Alice"
+```
+
 Dry-run (nao persiste nada):
 
 ```bash
@@ -55,6 +61,7 @@ python manage.py import_whatsapp_zip /caminho/arquivo.zip --dry-run
 - `imports/services/ingest_zip.py`: orquestracao unzip + parse + persistencia em `transaction.atomic`.
 - `imports/management/commands/import_whatsapp_zip.py`: CLI fina delegando para service layer.
 - `imports/models.py`: modelo relacional para jobs, chats, participantes, mensagens e midias.
+- `ParticipantLink`: links externos associados a participantes por chat (ex.: perfil social).
 
 ## Parsing suportado
 

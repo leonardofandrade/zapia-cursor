@@ -40,6 +40,26 @@ class Participant(models.Model):
         return f"{self.chat.title}::{self.display_name}"
 
 
+class ParticipantLink(models.Model):
+    participant = models.ForeignKey(
+        Participant, on_delete=models.CASCADE, related_name="links"
+    )
+    label = models.CharField(max_length=120, blank=True)
+    url = models.URLField(max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["participant", "url"], name="uniq_participant_link_url"
+            )
+        ]
+        indexes = [models.Index(fields=["participant", "created_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.participant.display_name}::{self.url}"
+
+
 class Message(models.Model):
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name="messages")
     participant = models.ForeignKey(
