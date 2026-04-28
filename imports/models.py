@@ -1,6 +1,15 @@
 from django.db import models
 
 
+class Contact(models.Model):
+    display_name = models.CharField(max_length=255)
+    normalized_name = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return self.display_name
+
+
 class ImportJob(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
@@ -29,6 +38,9 @@ class Chat(models.Model):
 
 class Participant(models.Model):
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name="participants")
+    contact = models.ForeignKey(
+        Contact, on_delete=models.SET_NULL, null=True, blank=True, related_name="participants"
+    )
     display_name = models.CharField(max_length=255)
 
     class Meta:

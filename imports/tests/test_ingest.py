@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from imports.models import Chat, ImportJob, MediaAsset, Message, Participant
+from imports.models import Chat, Contact, ImportJob, MediaAsset, Message, Participant
 from imports.services.ingest_zip import ingest_whatsapp_zip
 
 
@@ -63,3 +63,22 @@ def test_media_payload_is_stored_in_database(sample_zip: Path):
 
     media = MediaAsset.objects.get()
     assert bytes(media.payload) == b"fake-jpg-content"
+
+
+@pytest.mark.django_db
+def test_participants_are_linked_to_global_contacts_across_chats(tmp_path: Path):
+    first_zip = tmp_path / "chat-a.zip"
+    second_zip = tmp_path / "chat-b.zip"
+
+    with zipfile.ZipFile(first_zip, "w") as zf:
+        zf.writestr("_chat.txt", "28/04/26, 14:31 - Jose Silva: oi\n")
+
+    with zipfile.ZipFile(second_zip, "w") as zf:
+        zf.writestr("_chat.txt", "28/04/26, 15:31 - José  Silva: ola\n")
+
+    ingest_whatsapp_zip(str(first_zip), chat_name="Chat A")
+    ingest_whatsapp_zip(str(second_zip), chat_name="Chat B")
+
+    assert Participant.objects.count() == 2
+    assert Contact.objects.count() == 1
+    assert Participant.objects.exclude(contact=None).count() == 2

@@ -9,6 +9,9 @@
         {% for participant in participants %}
         <p>
             <strong>{{ participant.display_name }}</strong>
+            {% if participant.contact %}
+                <span class="muted">(contato: {{ participant.contact.display_name }})</span>
+            {% endif %}
             {% if participant.links.all %}
                 <br>
                 {% for link in participant.links.all %}

@@ -60,8 +60,9 @@ python manage.py import_whatsapp_zip /caminho/arquivo.zip --dry-run
 - `imports/domain/parsing.py`: parser puro para texto de export do WhatsApp.
 - `imports/services/ingest_zip.py`: orquestracao unzip + parse + persistencia em `transaction.atomic`.
 - `imports/management/commands/import_whatsapp_zip.py`: CLI fina delegando para service layer.
-- `imports/models.py`: modelo relacional para jobs, chats, participantes, mensagens e midias.
+- `imports/models.py`: modelo relacional para jobs, chats, contatos, participantes, mensagens e midias.
 - `ParticipantLink`: links externos associados a participantes por chat (ex.: perfil social).
+- `Contact`: entidade global de contato, vinculada automaticamente a participantes por nome normalizado.
 
 ## Parsing suportado
 

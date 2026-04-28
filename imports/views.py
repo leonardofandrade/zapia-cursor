@@ -1,7 +1,7 @@
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, render
 
-from imports.models import Chat, MediaAsset, Message, Participant
+from imports.models import Chat, Contact, MediaAsset, Message, Participant
 from imports.services.contact_lookup import find_contact_chat_interactions
 
 
@@ -10,6 +10,7 @@ def home(request):
         "stats": {
             "chats": Chat.objects.count(),
             "participants": Participant.objects.count(),
+            "contacts": Contact.objects.count(),
             "messages": Message.objects.count(),
             "media_assets": MediaAsset.objects.count(),
         },
@@ -28,7 +29,7 @@ def chat_list(request):
 
 def chat_detail(request, chat_id: int):
     chat = get_object_or_404(Chat, id=chat_id)
-    participants = chat.participants.prefetch_related("links").order_by("display_name")
+    participants = chat.participants.select_related("contact").prefetch_related("links").order_by("display_name")
     recent_messages = chat.messages.select_related("participant").order_by("-timestamp")[:100]
     return render(
         request,

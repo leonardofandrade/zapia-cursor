@@ -13,7 +13,8 @@ from django.utils import timezone
 
 from imports.domain.parsing import parse_chat_text, pick_chat_txt_name
 from imports.domain.types import LocalePreference
-from imports.models import Chat, ImportJob, MediaAsset, Message, Participant
+from imports.models import Chat, Contact, ImportJob, MediaAsset, Message, Participant
+from imports.services.contacts import infer_contact_display_name, normalize_contact_name
 
 
 @dataclass(slots=True)
@@ -94,10 +95,26 @@ def ingest_whatsapp_zip(
             return summary
 
         chat, _ = Chat.objects.get_or_create(title=parsed.chat_title)
-        participants = {
-            name: Participant.objects.get_or_create(chat=chat, display_name=name)[0]
-            for name in sorted(parsed.participants)
-        }
+        participants = {}
+        for name in sorted(parsed.participants):
+            normalized_name = normalize_contact_name(name)
+            contact = None
+            if normalized_name:
+                contact, _ = Contact.objects.get_or_create(
+                    normalized_name=normalized_name,
+                    defaults={"display_name": infer_contact_display_name(name)},
+                )
+
+            participant, _ = Participant.objects.get_or_create(
+                chat=chat,
+                display_name=name,
+                defaults={"contact": contact},
+            )
+            if participant.contact_id is None and contact is not None:
+                participant.contact = contact
+                participant.save(update_fields=["contact"])
+
+            participants[name] = participant
         summary.participants_total = len(participants)
 
         candidates: list[Message] = []

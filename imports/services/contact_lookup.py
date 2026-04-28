@@ -20,16 +20,18 @@ def find_contact_chat_interactions(contact_query: str) -> list[ContactChatIntera
         return []
 
     participants = (
-        Participant.objects.filter(display_name__icontains=query)
+        Participant.objects.filter(
+            Q(display_name__icontains=query) | Q(contact__display_name__icontains=query)
+        )
         .annotate(messages_count=Count("messages"))
         .filter(Q(messages_count__gt=0))
-        .select_related("chat")
+        .select_related("chat", "contact")
         .order_by("-messages_count", "chat__title")
     )
     return [
         ContactChatInteraction(
             chat_title=item.chat.title,
-            participant_name=item.display_name,
+            participant_name=item.contact.display_name if item.contact_id else item.display_name,
             messages_count=item.messages_count,
         )
         for item in participants
