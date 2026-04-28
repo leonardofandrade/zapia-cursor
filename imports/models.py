@@ -83,6 +83,7 @@ class Message(models.Model):
     content_hash = models.CharField(max_length=64)
     raw_line = models.TextField(blank=True)
     media_refs = models.JSONField(default=list, blank=True)
+    media_ref_sha256_map = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

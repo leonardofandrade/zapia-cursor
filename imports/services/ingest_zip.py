@@ -171,7 +171,9 @@ def ingest_whatsapp_zip(
             ): row
             for row in Message.objects.filter(chat=chat, content_hash__in=[i.content_hash for i in candidates])
         }
+        persisted_messages_by_id = {message.id: message for message in persisted_messages.values()}
         media_to_message: dict[str, Message] = {}
+        media_ref_to_messages: dict[str, list[Message]] = {}
         for item in candidates:
             key = (item.participant_id, item.timestamp, item.content_hash)
             persisted = persisted_messages.get(key)
@@ -180,13 +182,20 @@ def ingest_whatsapp_zip(
             for ref in item.media_refs:
                 if ref == "<Media omitted>":
                     continue
-                media_to_message.setdefault(ref, persisted)
+                normalized_ref = _normalize_media_ref_name(ref)
+                if not normalized_ref:
+                    continue
+                media_to_message.setdefault(normalized_ref, persisted)
+                media_ref_to_messages.setdefault(normalized_ref, []).append(persisted)
+
+        message_ref_hashes: dict[int, dict[str, str]] = {}
 
         referenced = {r for r in all_media_refs if r != "<Media omitted>"}
         target_members = [m for m in media_members if Path(m).name in referenced] or media_members
         with ZipFile(zip_file) as media_archive:
             for member in target_members:
                 original_name = Path(member).name
+                normalized_original_name = _normalize_media_ref_name(original_name)
                 payload = media_archive.read(member)
                 sha256 = hashlib.sha256(payload).hexdigest()
                 guessed_mime = mimetypes.guess_type(original_name)[0] or "application/octet-stream"
@@ -195,20 +204,35 @@ def ingest_whatsapp_zip(
                     sha256=sha256,
                     defaults={
                         "chat": chat,
-                        "message": media_to_message.get(original_name),
+                        "message": media_to_message.get(normalized_original_name),
                         "original_name": original_name,
                         "payload": payload,
                         "mime": guessed_mime,
                         "size_bytes": len(payload),
                     },
                 )
+                for ref_message in media_ref_to_messages.get(normalized_original_name, []):
+                    message_ref_hashes.setdefault(ref_message.id, {})[normalized_original_name] = sha256
                 if not media_created:
                     summary.deduplicated_media += 1
-                    if media_obj.message_id is None and original_name in media_to_message:
-                        media_obj.message = media_to_message[original_name]
+                    if media_obj.message_id is None and normalized_original_name in media_to_message:
+                        media_obj.message = media_to_message[normalized_original_name]
                         media_obj.save(update_fields=["message"])
                 else:
                     summary.extracted_media += 1
+
+        if message_ref_hashes:
+            messages_to_update = []
+            for message_id, refs_map in message_ref_hashes.items():
+                persisted = persisted_messages_by_id.get(message_id)
+                if not persisted:
+                    continue
+                current_map = dict(persisted.media_ref_sha256_map or {})
+                current_map.update(refs_map)
+                persisted.media_ref_sha256_map = current_map
+                messages_to_update.append(persisted)
+            if messages_to_update:
+                Message.objects.bulk_update(messages_to_update, ["media_ref_sha256_map"])
 
         import_job.status = ImportJob.Status.COMPLETED
         import_job.finished_at = timezone.now()
@@ -229,3 +253,9 @@ def _build_message_hash(*, timestamp: str, sender: str | None, text: str, media_
 def _chunks(items: list[Message], size: int):
     for idx in range(0, len(items), size):
         yield items[idx : idx + size]
+
+
+def _normalize_media_ref_name(value: str) -> str:
+    if not value or value == "<Media omitted>":
+        return ""
+    return Path(value.strip().strip('"').strip("'")).name.casefold()

@@ -38,13 +38,25 @@ def chat_detail(request, chat_id: int):
     )[::-1]
     chat_media_assets = list(chat.media_assets.all())
     media_by_normalized_name: dict[str, list[MediaAsset]] = {}
+    media_by_sha: dict[str, MediaAsset] = {}
     for media in chat_media_assets:
         key = _normalize_media_name(media.original_name)
         media_by_normalized_name.setdefault(key, []).append(media)
+        media_by_sha[media.sha256] = media
 
     message_cards = []
     for message in recent_messages:
         linked_media = list(message.media_assets.all())
+        if not linked_media:
+            recovered_by_hash: list[MediaAsset] = []
+            seen_ids_by_hash: set[int] = set()
+            for sha in (message.media_ref_sha256_map or {}).values():
+                media = media_by_sha.get(sha)
+                if media and media.id not in seen_ids_by_hash:
+                    seen_ids_by_hash.add(media.id)
+                    recovered_by_hash.append(media)
+            linked_media = recovered_by_hash
+
         if not linked_media:
             recovered: list[MediaAsset] = []
             seen_ids: set[int] = set()

@@ -62,7 +62,9 @@ def test_media_payload_is_stored_in_database(sample_zip: Path):
     ingest_whatsapp_zip(str(sample_zip))
 
     media = MediaAsset.objects.get()
+    message = Message.objects.get(participant__display_name="Bob")
     assert bytes(media.payload) == b"fake-jpg-content"
+    assert message.media_ref_sha256_map == {"img-0001.jpg": media.sha256}
 
 
 @pytest.mark.django_db
