@@ -23,10 +23,8 @@ linha extra da mesma mensagem
 
 @pytest.mark.django_db
 def test_ingest_creates_records_and_is_idempotent(sample_zip: Path, tmp_path: Path):
-    output_dir = tmp_path / "out"
-
-    first = ingest_whatsapp_zip(str(sample_zip), output_dir=str(output_dir))
-    second = ingest_whatsapp_zip(str(sample_zip), output_dir=str(output_dir))
+    first = ingest_whatsapp_zip(str(sample_zip))
+    second = ingest_whatsapp_zip(str(sample_zip))
 
     assert first.imported_messages == 2
     assert second.imported_messages == 0
@@ -39,7 +37,6 @@ def test_ingest_creates_records_and_is_idempotent(sample_zip: Path, tmp_path: Pa
 
 @pytest.mark.django_db
 def test_media_sha_dedup_across_two_import_jobs(tmp_path: Path):
-    output_dir = tmp_path / "out"
     media_bytes = b"shared-content"
 
     first_zip = tmp_path / "chat-a.zip"
@@ -53,8 +50,16 @@ def test_media_sha_dedup_across_two_import_jobs(tmp_path: Path):
         zf.writestr("_chat.txt", "28/04/26, 15:31 - Bob: <attached: IMG-0001.jpg>\n")
         zf.writestr("IMG-0001.jpg", media_bytes)
 
-    ingest_whatsapp_zip(str(first_zip), output_dir=str(output_dir), chat_name="Chat A")
-    ingest_whatsapp_zip(str(second_zip), output_dir=str(output_dir), chat_name="Chat B")
+    ingest_whatsapp_zip(str(first_zip), chat_name="Chat A")
+    ingest_whatsapp_zip(str(second_zip), chat_name="Chat B")
 
     assert ImportJob.objects.count() == 2
     assert MediaAsset.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_media_payload_is_stored_in_database(sample_zip: Path):
+    ingest_whatsapp_zip(str(sample_zip))
+
+    media = MediaAsset.objects.get()
+    assert bytes(media.payload) == b"fake-jpg-content"

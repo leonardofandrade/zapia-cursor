@@ -41,7 +41,7 @@ class IngestSummary:
 def ingest_whatsapp_zip(
     zip_path: str,
     *,
-    output_dir: str,
+    output_dir: str | None = None,
     timezone_name: str = "America/Fortaleza",
     chat_name: str | None = None,
     dry_run: bool = False,
@@ -165,8 +165,6 @@ def ingest_whatsapp_zip(
                     continue
                 media_to_message.setdefault(ref, persisted)
 
-        media_root = Path(output_dir)
-        chat_slug = _slugify(chat.title)
         referenced = {r for r in all_media_refs if r != "<Media omitted>"}
         target_members = [m for m in media_members if Path(m).name in referenced] or media_members
         with ZipFile(zip_file) as media_archive:
@@ -175,12 +173,6 @@ def ingest_whatsapp_zip(
                 payload = media_archive.read(member)
                 sha256 = hashlib.sha256(payload).hexdigest()
                 guessed_mime = mimetypes.guess_type(original_name)[0] or "application/octet-stream"
-                extension = Path(original_name).suffix
-                relative = Path(chat_slug) / str(import_job.id) / f"{sha256}{extension}"
-                output_path = media_root / relative
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                if not output_path.exists():
-                    output_path.write_bytes(payload)
 
                 media_obj, media_created = MediaAsset.objects.get_or_create(
                     sha256=sha256,
@@ -188,7 +180,7 @@ def ingest_whatsapp_zip(
                         "chat": chat,
                         "message": media_to_message.get(original_name),
                         "original_name": original_name,
-                        "stored_path": str((media_root / relative).resolve()),
+                        "payload": payload,
                         "mime": guessed_mime,
                         "size_bytes": len(payload),
                     },
@@ -220,8 +212,3 @@ def _build_message_hash(*, timestamp: str, sender: str | None, text: str, media_
 def _chunks(items: list[Message], size: int):
     for idx in range(0, len(items), size):
         yield items[idx : idx + size]
-
-
-def _slugify(value: str) -> str:
-    allowed = "".join(ch if ch.isalnum() else "-" for ch in value.strip().lower())
-    return "-".join([chunk for chunk in allowed.split("-") if chunk])[:80] or "chat"

@@ -93,9 +93,9 @@ Por padrao, o parser usa preferencia `pt-BR` (`dayfirst=True`), priorizando `DD/
 
 ## Persistencia de midia
 
-- Midia extraida para `MEDIA_ROOT/<chat_slug>/<import_job_id>/<sha256><ext>`.
-- Se houver referencias no texto, prioriza extrair arquivos referenciados.
-- Se nao houver referencias, extrai os anexos do ZIP e registra no banco.
+- Midia persistida diretamente no banco em `imports_mediaasset.payload` (`BinaryField`).
+- Se houver referencias no texto, prioriza processar os arquivos referenciados.
+- Se nao houver referencias, processa os anexos do ZIP e registra no banco.
 - MIME e detectado por `mimetypes` (stdlib), com fallback para `application/octet-stream`.
 
 ## Banco de dados e evolucao

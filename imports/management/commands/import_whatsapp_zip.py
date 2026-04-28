@@ -15,8 +15,9 @@ class Command(BaseCommand):
         parser.add_argument("zip_path", type=str, help="Caminho para o arquivo ZIP exportado")
         parser.add_argument(
             "--output-dir",
-            required=True,
-            help="Pasta onde os arquivos de midia extraidos serao gravados",
+            required=False,
+            default=None,
+            help="(Legado) Nao utilizado: as midias agora sao persistidas no banco",
         )
         parser.add_argument("--timezone", default="America/Fortaleza", help="Timezone de parsing")
         parser.add_argument("--chat-name", default=None, help="Nome de chat para override")

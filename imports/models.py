@@ -76,8 +76,8 @@ class MediaAsset(models.Model):
         Message, on_delete=models.SET_NULL, null=True, blank=True, related_name="media_assets"
     )
     original_name = models.CharField(max_length=255)
-    stored_path = models.CharField(max_length=512)
     sha256 = models.CharField(max_length=64, unique=True)
+    payload = models.BinaryField()
     mime = models.CharField(max_length=100, blank=True)
     size_bytes = models.PositiveBigIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
