@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
@@ -21,7 +22,9 @@ class Command(BaseCommand):
         if not Path(zip_path).exists():
             raise CommandError(f"Arquivo nao encontrado: {zip_path}")
 
-        self.stdout.write(self.style.WARNING(f"Iniciando importacao de: {zip_path}"))
+        output_encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+        safe_zip_path = zip_path.encode(output_encoding, errors="replace").decode(output_encoding)
+        self.stdout.write(self.style.WARNING(f"Iniciando importacao de: {safe_zip_path}"))
         summary = ingest_whatsapp_zip(
             zip_path,
             timezone_name=options["timezone"],
