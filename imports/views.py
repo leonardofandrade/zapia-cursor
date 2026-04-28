@@ -36,13 +36,46 @@ def chat_detail(request, chat_id: int):
         .prefetch_related("media_assets")
         .order_by("-timestamp")[:100]
     )[::-1]
+    chat_media_assets = list(chat.media_assets.all())
+    media_by_normalized_name: dict[str, list[MediaAsset]] = {}
+    for media in chat_media_assets:
+        key = _normalize_media_name(media.original_name)
+        media_by_normalized_name.setdefault(key, []).append(media)
+
+    message_cards = []
+    for message in recent_messages:
+        linked_media = list(message.media_assets.all())
+        if not linked_media:
+            recovered: list[MediaAsset] = []
+            seen_ids: set[int] = set()
+            for ref in message.media_refs:
+                normalized_ref = _normalize_media_name(ref)
+                if not normalized_ref:
+                    continue
+                for media in media_by_normalized_name.get(normalized_ref, []):
+                    if media.id not in seen_ids:
+                        seen_ids.add(media.id)
+                        recovered.append(media)
+            linked_media = recovered
+
+        has_unresolved_ref = bool(
+            [r for r in message.media_refs if r != "<Media omitted>"]
+        ) and not linked_media
+        message_cards.append(
+            {
+                "message": message,
+                "media_assets": linked_media,
+                "has_unresolved_ref": has_unresolved_ref or "<Media omitted>" in message.media_refs,
+            }
+        )
+
     return render(
         request,
         "imports/chat_detail.html",
         {
             "chat": chat,
             "participants": participants,
-            "recent_messages": recent_messages,
+            "message_cards": message_cards,
         },
     )
 
@@ -67,3 +100,11 @@ def media_asset_content(request, media_id: int):
     response = HttpResponse(bytes(media.payload), content_type=media.mime or "application/octet-stream")
     response["Content-Disposition"] = f'inline; filename="{media.original_name}"'
     return response
+
+
+def _normalize_media_name(value: str) -> str:
+    if not value or value == "<Media omitted>":
+        return ""
+    cleaned = value.strip().strip('"').strip("'").replace("\\", "/")
+    basename = cleaned.split("/")[-1]
+    return basename.casefold()

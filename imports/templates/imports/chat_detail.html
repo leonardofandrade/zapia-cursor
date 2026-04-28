@@ -31,9 +31,10 @@
 
 <div class="card">
     <h2>Conversa (ultimas 100 mensagens)</h2>
-    {% if recent_messages %}
+    {% if message_cards %}
     <div class="chat-shell">
-        {% for message in recent_messages %}
+        {% for card in message_cards %}
+        {% with message=card.message %}
         <div class="message-row {% if message.is_system %}system{% endif %}">
             <div class="bubble {% if message.is_system %}system{% endif %}">
                 {% if not message.is_system %}
@@ -47,8 +48,8 @@
                 {% endif %}
 
                 <div class="bubble-media">
-                    {% if message.media_assets.all %}
-                        {% for media in message.media_assets.all %}
+                    {% if card.media_assets %}
+                        {% for media in card.media_assets %}
                             {% if media.mime|slice:":6" == "image/" %}
                                 <img src="{% url 'imports:media_asset_content' media.id %}" alt="{{ media.original_name }}" />
                             {% elif media.mime|slice:":6" == "video/" %}
@@ -67,7 +68,7 @@
                                 </a>
                             {% endif %}
                         {% endfor %}
-                    {% elif "<Media omitted>" in message.media_refs %}
+                    {% elif card.has_unresolved_ref %}
                         <span class="muted">Midia mencionada, mas arquivo nao disponivel.</span>
                     {% endif %}
                 </div>
@@ -75,6 +76,7 @@
                 <div class="bubble-meta">{{ message.timestamp|date:"d/m/Y H:i" }}</div>
             </div>
         </div>
+        {% endwith %}
         {% endfor %}
     </div>
     {% else %}
