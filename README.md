@@ -107,3 +107,7 @@ Por padrao, o parser usa preferencia `pt-BR` (`dayfirst=True`), priorizando `DD/
 
 - `psycopg[binary]` para PostgreSQL
 - `Pillow` para enriquecer metadados de imagem
+
+## TODO
+
+- Implementar modo incremental estrito por chat (baseado em marcador de ultima mensagem) para importacoes sucessivas de ZIP atualizado.
