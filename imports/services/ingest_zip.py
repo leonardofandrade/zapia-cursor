@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+import mimetypes
 from dataclasses import dataclass
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from zipfile import ZipFile
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from imports.domain.parsing import parse_chat_text, pick_chat_txt_name
 from imports.domain.types import LocalePreference
-from imports.models import Chat, ImportJob, Message, Participant
+from imports.models import Chat, ImportJob, MediaAsset, Message, Participant
 
 
 @dataclass(slots=True)
@@ -22,6 +24,8 @@ class IngestSummary:
     participants_total: int = 0
     media_refs_found: int = 0
     missing_media_refs: int = 0
+    extracted_media: int = 0
+    deduplicated_media: int = 0
 
     def as_dict(self) -> dict:
         return {
@@ -30,6 +34,8 @@ class IngestSummary:
             "participants_total": self.participants_total,
             "media_refs_found": self.media_refs_found,
             "missing_media_refs": self.missing_media_refs,
+            "extracted_media": self.extracted_media,
+            "deduplicated_media": self.deduplicated_media,
         }
 
 
@@ -60,7 +66,8 @@ def ingest_whatsapp_zip(
         )
 
     summary = IngestSummary()
-    media_member_names = {Path(m).name for m in members if not m.lower().endswith(".txt")}
+    media_members = [m for m in members if not m.lower().endswith(".txt")]
+    media_member_names = {Path(m).name for m in media_members}
     all_media_refs = [ref for msg in parsed.messages for ref in msg.media_refs]
     summary.media_refs_found = len(all_media_refs)
     summary.missing_media_refs = sum(
@@ -139,6 +146,61 @@ def ingest_whatsapp_zip(
         summary.imported_messages = len(to_create)
         summary.duplicated_messages = duplicated
 
+        persisted_messages = {
+            (
+                row.participant_id,
+                row.timestamp,
+                row.content_hash,
+            ): row
+            for row in Message.objects.filter(chat=chat, content_hash__in=[i.content_hash for i in candidates])
+        }
+        media_to_message: dict[str, Message] = {}
+        for item in candidates:
+            key = (item.participant_id, item.timestamp, item.content_hash)
+            persisted = persisted_messages.get(key)
+            if not persisted:
+                continue
+            for ref in item.media_refs:
+                if ref == "<Media omitted>":
+                    continue
+                media_to_message.setdefault(ref, persisted)
+
+        media_root = Path(settings.MEDIA_ROOT)
+        chat_slug = _slugify(chat.title)
+        referenced = {r for r in all_media_refs if r != "<Media omitted>"}
+        target_members = [m for m in media_members if Path(m).name in referenced] or media_members
+        with ZipFile(zip_file) as media_archive:
+            for member in target_members:
+                original_name = Path(member).name
+                payload = media_archive.read(member)
+                sha256 = hashlib.sha256(payload).hexdigest()
+                guessed_mime = mimetypes.guess_type(original_name)[0] or "application/octet-stream"
+                extension = Path(original_name).suffix
+                relative = Path(chat_slug) / str(import_job.id) / f"{sha256}{extension}"
+                output_path = media_root / relative
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                if not output_path.exists():
+                    output_path.write_bytes(payload)
+
+                media_obj, media_created = MediaAsset.objects.get_or_create(
+                    sha256=sha256,
+                    defaults={
+                        "chat": chat,
+                        "message": media_to_message.get(original_name),
+                        "original_name": original_name,
+                        "stored_path": str(relative).replace("\\", "/"),
+                        "mime": guessed_mime,
+                        "size_bytes": len(payload),
+                    },
+                )
+                if not media_created:
+                    summary.deduplicated_media += 1
+                    if media_obj.message_id is None and original_name in media_to_message:
+                        media_obj.message = media_to_message[original_name]
+                        media_obj.save(update_fields=["message"])
+                else:
+                    summary.extracted_media += 1
+
         import_job.status = ImportJob.Status.COMPLETED
         import_job.finished_at = timezone.now()
         import_job.summary_json = json.loads(json.dumps(summary.as_dict()))
@@ -158,3 +220,8 @@ def _build_message_hash(*, timestamp: str, sender: str | None, text: str, media_
 def _chunks(items: list[Message], size: int):
     for idx in range(0, len(items), size):
         yield items[idx : idx + size]
+
+
+def _slugify(value: str) -> str:
+    allowed = "".join(ch if ch.isalnum() else "-" for ch in value.strip().lower())
+    return "-".join([chunk for chunk in allowed.split("-") if chunk])[:80] or "chat"
