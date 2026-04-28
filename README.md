@@ -1,4 +1,4 @@
-# WhatsApp ZIP Ingestor (Django 6.0.4)
+# ZapIA (Django 6.0.4)
 
 Importador de exportacoes do WhatsApp (`.zip` com `.txt` + midia) para banco SQLite, com service layer dedicada e comportamento idempotente.
 
@@ -23,7 +23,7 @@ pip install -r requirements.txt
 Inicializacao Django (ja executada neste repositório):
 
 ```bash
-django-admin startproject whatsapp_ingestor .
+django-admin startproject zapia .
 python manage.py startapp imports
 ```
 
