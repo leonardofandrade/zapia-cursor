@@ -48,6 +48,12 @@ Consultar chats/grupos por contato:
 python manage.py find_contact_chats "Alice"
 ```
 
+Backfill de hashes de anexos para mensagens antigas:
+
+```bash
+python manage.py backfill_media_ref_hashes
+```
+
 Dry-run (nao persiste nada):
 
 ```bash
