@@ -102,3 +102,21 @@ def test_ingest_uses_self_identified_name_for_contact_display(tmp_path: Path):
     assert participant.display_name == "+55 85 9258-1143"
     assert contact is not None
     assert contact.display_name == "Paulo Benavinuto 🍃"
+
+
+@pytest.mark.django_db
+def test_ingest_uses_self_identified_name_with_invisible_whatsapp_chars(tmp_path: Path):
+    zip_path = tmp_path / "chat-self-identified-hidden-char.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr(
+            "_chat.txt",
+            "28/04/26, 14:31 - +55 85 9258-1143: \u200e~\u202fPaulo Benavinuto 🍃\n",
+        )
+
+    ingest_whatsapp_zip(str(zip_path), chat_name="Chat Alias Hidden")
+
+    participant = Participant.objects.get(chat__title="Chat Alias Hidden")
+    contact = participant.contact
+    assert participant.display_name == "+55 85 9258-1143"
+    assert contact is not None
+    assert contact.display_name == "Paulo Benavinuto 🍃"

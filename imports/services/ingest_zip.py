@@ -40,7 +40,9 @@ class IngestSummary:
         }
 
 
-SELF_IDENTIFIED_NAME_RE = re.compile(r"^\s*~[\s\u00A0\u202F]*(?P<name>.+?)\s*$")
+SELF_IDENTIFIED_NAME_RE = re.compile(
+    r"^[\s\u200e\u200f]*[~∼][\s\u00A0\u202F\u200e\u200f]*(?P<name>.+?)\s*$"
+)
 
 
 def _is_media_omitted_marker(value: str) -> bool:
