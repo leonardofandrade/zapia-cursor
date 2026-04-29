@@ -1,36 +1,45 @@
 {% extends "imports/base.html" %}
 
 {% block content %}
-<h1>{{ chat.title }}</h1>
+<h1 class="h3 mb-3">{{ chat.title }}</h1>
 
-<div class="card">
-    <h2>Participantes e links</h2>
+<div class="card mb-3">
+    <div class="card-body">
+    <h2 class="h5 card-title">Participantes e links</h2>
     {% if participants %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 row-cols-xxl-5 g-3">
         {% for participant in participants %}
-        <p>
-            <strong>{{ participant.display_name }}</strong>
-            {% if participant.contact %}
-                <span class="muted">(contato: {{ participant.contact.display_name }})</span>
-            {% endif %}
-            {% if participant.links.all %}
-                <br>
-                {% for link in participant.links.all %}
-                    <a href="{{ link.url }}" target="_blank" rel="noreferrer">
-                        {% if link.label %}{{ link.label }}{% else %}{{ link.url }}{% endif %}
-                    </a>{% if not forloop.last %} | {% endif %}
-                {% endfor %}
-            {% else %}
-                <span class="muted"> - sem links</span>
-            {% endif %}
-        </p>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body">
+                    <p class="mb-2">{{ participant.display_name }}</p>
+                    {% if participant.contact and participant.contact.display_name != participant.display_name %}
+                    <p class="mb-2">{{ participant.contact.display_name }}</p>
+                    {% endif %}
+                    <p class="mb-0"><strong>Links:</strong><br>
+                    {% if participant.links.all %}
+                        {% for link in participant.links.all %}
+                            <a href="{{ link.url }}" target="_blank" rel="noreferrer">
+                                {% if link.label %}{{ link.label }}{% else %}{{ link.url }}{% endif %}
+                            </a>{% if not forloop.last %} | {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <span class="muted">Sem links</span>
+                    {% endif %}</p>
+                </div>
+            </div>
+        </div>
         {% endfor %}
+    </div>
     {% else %}
     <p>Sem participantes.</p>
     {% endif %}
+    </div>
 </div>
 
-<div class="card">
-    <h2>Conversa (ultimas 100 mensagens)</h2>
+<div class="card mb-3">
+    <div class="card-body">
+    <h2 class="h5 card-title">Conversa (ultimas 100 mensagens)</h2>
     {% if message_cards %}
     <div class="chat-shell">
         {% for card in message_cards %}
@@ -39,7 +48,15 @@
             <div class="bubble {% if message.is_system %}system{% endif %}">
                 {% if not message.is_system %}
                 <div class="bubble-header">
-                    {% if message.participant %}{{ message.participant.display_name }}{% else %}Sistema{% endif %}
+                    {% if message.participant %}
+                        {% if message.participant.contact %}
+                            {{ message.participant.contact.display_name }}
+                        {% else %}
+                            {{ message.participant.display_name }}
+                        {% endif %}
+                    {% else %}
+                        Sistema
+                    {% endif %}
                 </div>
                 {% endif %}
 
@@ -82,5 +99,6 @@
     {% else %}
     <p>Sem mensagens.</p>
     {% endif %}
+    </div>
 </div>
 {% endblock %}

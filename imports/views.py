@@ -32,7 +32,7 @@ def chat_detail(request, chat_id: int):
     chat = get_object_or_404(Chat, id=chat_id)
     participants = chat.participants.select_related("contact").prefetch_related("links").order_by("display_name")
     recent_messages = list(
-        chat.messages.select_related("participant")
+        chat.messages.select_related("participant", "participant__contact")
         .prefetch_related("media_assets")
         .order_by("-timestamp")[:100]
     )[::-1]

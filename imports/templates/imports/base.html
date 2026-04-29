@@ -4,15 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ZapIA</title>
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+        crossorigin="anonymous"
+    >
     <style>
-        body { font-family: Arial, sans-serif; margin: 24px; color: #1f2937; }
-        nav { margin-bottom: 20px; }
-        nav a { margin-right: 12px; text-decoration: none; color: #2563eb; }
-        table { border-collapse: collapse; width: 100%; margin-top: 12px; }
-        th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
-        th { background: #f3f4f6; }
+        body { color: #1f2937; }
         .muted { color: #6b7280; }
-        .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
         .stats { display: flex; gap: 10px; flex-wrap: wrap; }
         .stat { border: 1px solid #d1d5db; border-radius: 6px; padding: 10px; min-width: 140px; }
         .chat-shell { background: #efeae2; border: 1px solid #d8d5cf; border-radius: 10px; padding: 12px; }
@@ -26,13 +26,15 @@
         .bubble-meta { margin-top: 6px; font-size: 11px; color: #6b7280; text-align: right; }
     </style>
 </head>
-<body>
-    <nav>
-        <a href="{% url 'imports:home' %}">Inicio</a>
-        <a href="{% url 'imports:chat_list' %}">Chats</a>
-        <a href="{% url 'imports:contact_lookup' %}">Buscar Contato</a>
-        <a href="/admin/">Admin</a>
+<body class="bg-light">
+    <div class="container py-4">
+    <nav class="mb-4">
+        <a class="me-3 text-decoration-none" href="{% url 'imports:home' %}">Inicio</a>
+        <a class="me-3 text-decoration-none" href="{% url 'imports:chat_list' %}">Chats</a>
+        <a class="me-3 text-decoration-none" href="{% url 'imports:contact_lookup' %}">Buscar Contato</a>
+        <a class="text-decoration-none" href="/admin/">Admin</a>
     </nav>
     {% block content %}{% endblock %}
+    </div>
 </body>
 </html>
