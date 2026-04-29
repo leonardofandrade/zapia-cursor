@@ -84,3 +84,21 @@ def test_participants_are_linked_to_global_contacts_across_chats(tmp_path: Path)
     assert Participant.objects.count() == 2
     assert Contact.objects.count() == 1
     assert Participant.objects.exclude(contact=None).count() == 2
+
+
+@pytest.mark.django_db
+def test_ingest_uses_self_identified_name_for_contact_display(tmp_path: Path):
+    zip_path = tmp_path / "chat-self-identified.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr(
+            "_chat.txt",
+            "28/04/26, 14:31 - +55 85 9258-1143: ~ Paulo Benavinuto 🍃\n",
+        )
+
+    ingest_whatsapp_zip(str(zip_path), chat_name="Chat Alias")
+
+    participant = Participant.objects.get(chat__title="Chat Alias")
+    contact = participant.contact
+    assert participant.display_name == "+55 85 9258-1143"
+    assert contact is not None
+    assert contact.display_name == "Paulo Benavinuto 🍃"

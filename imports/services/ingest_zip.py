@@ -5,6 +5,7 @@ import json
 import mimetypes
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from zoneinfo import ZoneInfo
 from zipfile import ZipFile
 
@@ -37,6 +38,9 @@ class IngestSummary:
             "extracted_media": self.extracted_media,
             "deduplicated_media": self.deduplicated_media,
         }
+
+
+SELF_IDENTIFIED_NAME_RE = re.compile(r"^\s*~[\s\u00A0\u202F]*(?P<name>.+?)\s*$")
 
 
 def _is_media_omitted_marker(value: str) -> bool:
@@ -107,15 +111,20 @@ def ingest_whatsapp_zip(
             return summary
 
         chat, _ = Chat.objects.get_or_create(title=parsed.chat_title)
+        sender_aliases = _extract_sender_aliases(parsed.messages)
         participants = {}
         for name in sorted(parsed.participants):
             normalized_name = normalize_contact_name(name)
             contact = None
             if normalized_name:
+                preferred_display_name = sender_aliases.get(name) or infer_contact_display_name(name)
                 contact, _ = Contact.objects.get_or_create(
                     normalized_name=normalized_name,
-                    defaults={"display_name": infer_contact_display_name(name)},
+                    defaults={"display_name": preferred_display_name},
                 )
+                if sender_aliases.get(name) and contact.display_name != sender_aliases[name]:
+                    contact.display_name = sender_aliases[name]
+                    contact.save(update_fields=["display_name"])
 
             participant, _ = Participant.objects.get_or_create(
                 chat=chat,
@@ -271,3 +280,17 @@ def _normalize_media_ref_name(value: str) -> str:
     if not value or _is_media_omitted_marker(value):
         return ""
     return Path(value.strip().strip('"').strip("'")).name.casefold()
+
+
+def _extract_sender_aliases(messages) -> dict[str, str]:
+    aliases: dict[str, str] = {}
+    for item in messages:
+        if not item.sender or item.is_system:
+            continue
+        match = SELF_IDENTIFIED_NAME_RE.match((item.text or "").strip())
+        if not match:
+            continue
+        alias = infer_contact_display_name(match.group("name"))
+        if alias:
+            aliases[item.sender] = alias
+    return aliases
