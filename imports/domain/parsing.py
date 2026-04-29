@@ -12,8 +12,15 @@ from .types import LocalePreference, ParsedChat, ParsedMessage
 MESSAGE_RE = re.compile(
     r"^\[?(?P<date>\d{1,2}[\/\.]\d{1,2}[\/\.]\d{2,4})[,\s]+(?P<time>\d{1,2}:\d{2}(?::\d{2})?(?:\s?[APMapm\.]{2,4})?)\]?\s*[-–]\s*(?P<body>.+)$"
 )
-ATTACHED_RE = re.compile(r"<attached:\s*([^>]+)>", re.IGNORECASE)
-MEDIA_OMITTED_RE = re.compile(r"<media omitted>", re.IGNORECASE)
+ATTACHED_RE = re.compile(r"<(?:attached|anexo):\s*([^>]+)>", re.IGNORECASE)
+ATTACHED_FILENAME_RE = re.compile(
+    r"(?P<name>[A-Za-z0-9][A-Za-z0-9_\-\. ]+\.[A-Za-z0-9]{2,8})\s*\((?:arquivo anexado|file attached)\)",
+    re.IGNORECASE,
+)
+MEDIA_OMITTED_RE = re.compile(
+    r"<\s*(?:media omitted|midia oculta|mídia oculta|media oculta|mídia omitida|midia omitida)\s*>",
+    re.IGNORECASE,
+)
 
 
 def pick_chat_txt_name(members: list[str]) -> str:
@@ -107,6 +114,12 @@ def _extract_sender_and_text(body: str) -> tuple[str | None, str, bool]:
 
 def _extract_media_refs(text: str) -> list[str]:
     refs = [match.group(1).strip() for match in ATTACHED_RE.finditer(text)]
+    refs.extend(match.group("name").strip() for match in ATTACHED_FILENAME_RE.finditer(text))
     if MEDIA_OMITTED_RE.search(text):
         refs.append("<Media omitted>")
-    return refs
+    # Keep stable ordering while removing duplicates from mixed patterns.
+    unique_refs: list[str] = []
+    for ref in refs:
+        if ref not in unique_refs:
+            unique_refs.append(ref)
+    return unique_refs

@@ -1,9 +1,37 @@
 from django.db.models import Count
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, render
+import re
 
 from imports.models import Chat, Contact, MediaAsset, Message, Participant
 from imports.services.contact_lookup import find_contact_chat_interactions
+
+
+def _is_media_omitted_marker(value: str) -> bool:
+    normalized = (value or "").strip().casefold()
+    return normalized in {
+        "<media omitted>",
+        "<midia oculta>",
+        "<mídia oculta>",
+        "<media oculta>",
+        "<midia omitida>",
+        "<mídia omitida>",
+    }
+
+
+def _clean_message_text_for_display(value: str) -> str:
+    text = (value or "").strip()
+    if not text:
+        return ""
+    # Remove marker tokens in PT/EN while preserving remaining message content.
+    cleaned = re.sub(
+        r"<\s*(?:media omitted|midia oculta|mídia oculta|media oculta|midia omitida|mídia omitida)\s*>",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+    return cleaned
 
 
 def home(request):
@@ -71,13 +99,15 @@ def chat_detail(request, chat_id: int):
             linked_media = recovered
 
         has_unresolved_ref = bool(
-            [r for r in message.media_refs if r != "<Media omitted>"]
+            [r for r in message.media_refs if not _is_media_omitted_marker(r)]
         ) and not linked_media
         message_cards.append(
             {
                 "message": message,
+                "display_text": _clean_message_text_for_display(message.text),
                 "media_assets": linked_media,
-                "has_unresolved_ref": has_unresolved_ref or "<Media omitted>" in message.media_refs,
+                "has_unresolved_ref": has_unresolved_ref
+                or any(_is_media_omitted_marker(r) for r in message.media_refs),
             }
         )
 
@@ -115,7 +145,7 @@ def media_asset_content(request, media_id: int):
 
 
 def _normalize_media_name(value: str) -> str:
-    if not value or value == "<Media omitted>":
+    if not value or _is_media_omitted_marker(value):
         return ""
     cleaned = value.strip().strip('"').strip("'").replace("\\", "/")
     basename = cleaned.split("/")[-1]

@@ -39,6 +39,18 @@ class IngestSummary:
         }
 
 
+def _is_media_omitted_marker(value: str) -> bool:
+    normalized = (value or "").strip().casefold()
+    return normalized in {
+        "<media omitted>",
+        "<midia oculta>",
+        "<mídia oculta>",
+        "<media oculta>",
+        "<midia omitida>",
+        "<mídia omitida>",
+    }
+
+
 def ingest_whatsapp_zip(
     zip_path: str,
     *,
@@ -72,7 +84,7 @@ def ingest_whatsapp_zip(
     all_media_refs = [ref for msg in parsed.messages for ref in msg.media_refs]
     summary.media_refs_found = len(all_media_refs)
     summary.missing_media_refs = sum(
-        1 for ref in all_media_refs if ref != "<Media omitted>" and ref not in media_member_names
+        1 for ref in all_media_refs if not _is_media_omitted_marker(ref) and ref not in media_member_names
     )
 
     if dry_run:
@@ -180,7 +192,7 @@ def ingest_whatsapp_zip(
             if not persisted:
                 continue
             for ref in item.media_refs:
-                if ref == "<Media omitted>":
+                if _is_media_omitted_marker(ref):
                     continue
                 normalized_ref = _normalize_media_ref_name(ref)
                 if not normalized_ref:
@@ -190,7 +202,7 @@ def ingest_whatsapp_zip(
 
         message_ref_hashes: dict[int, dict[str, str]] = {}
 
-        referenced = {r for r in all_media_refs if r != "<Media omitted>"}
+        referenced = {r for r in all_media_refs if not _is_media_omitted_marker(r)}
         target_members = [m for m in media_members if Path(m).name in referenced] or media_members
         with ZipFile(zip_file) as media_archive:
             for member in target_members:
@@ -256,6 +268,6 @@ def _chunks(items: list[Message], size: int):
 
 
 def _normalize_media_ref_name(value: str) -> str:
-    if not value or value == "<Media omitted>":
+    if not value or _is_media_omitted_marker(value):
         return ""
     return Path(value.strip().strip('"').strip("'")).name.casefold()

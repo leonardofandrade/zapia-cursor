@@ -60,8 +60,8 @@
                 </div>
                 {% endif %}
 
-                {% if message.text and message.text != "<Media omitted>" %}
-                <div>{{ message.text|linebreaksbr }}</div>
+                {% if card.display_text %}
+                <div>{{ card.display_text|linebreaksbr }}</div>
                 {% endif %}
 
                 <div class="bubble-media">
