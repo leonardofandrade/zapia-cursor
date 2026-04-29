@@ -26,6 +26,47 @@
                     {% else %}
                         <span class="muted">Sem links</span>
                     {% endif %}</p>
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary mt-3"
+                    data-bs-toggle="modal"
+                    data-bs-target="#editContactModal{{ participant.id }}"
+                >
+                    Editar contato
+                </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="editContactModal{{ participant.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="post" action="{% url 'imports:update_participant_contact' chat.id participant.id %}">
+                        {% csrf_token %}
+                        <div class="modal-header">
+                            <h5 class="modal-title">Editar contato</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label" for="contactName{{ participant.id }}">Nome do contato</label>
+                                <input
+                                    id="contactName{{ participant.id }}"
+                                    name="contact_name"
+                                    type="text"
+                                    class="form-control"
+                                    value="{% if participant.contact %}{{ participant.contact.display_name }}{% endif %}"
+                                    placeholder="{{ participant.display_name }}"
+                                    required
+                                >
+                                <div class="form-text">Numero no chat: {{ participant.display_name }}</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Salvar</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

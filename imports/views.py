@@ -1,9 +1,11 @@
 from django.db.models import Count
 from django.http import Http404, HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 import re
+from django.views.decorators.http import require_POST
 
 from imports.models import Chat, Contact, MediaAsset, Message, Participant
+from imports.services.contacts import infer_contact_display_name, normalize_contact_name
 from imports.services.contact_lookup import find_contact_chat_interactions
 
 
@@ -142,6 +144,32 @@ def media_asset_content(request, media_id: int):
     response = HttpResponse(bytes(media.payload), content_type=media.mime or "application/octet-stream")
     response["Content-Disposition"] = f'inline; filename="{media.original_name}"'
     return response
+
+
+@require_POST
+def update_participant_contact(request, chat_id: int, participant_id: int):
+    participant = get_object_or_404(Participant.objects.select_related("chat", "contact"), id=participant_id, chat_id=chat_id)
+    raw_name = request.POST.get("contact_name", "")
+    display_name = infer_contact_display_name(raw_name)
+    if not display_name:
+        return redirect("imports:chat_detail", chat_id=chat_id)
+
+    normalized_name = normalize_contact_name(display_name)
+    if not normalized_name:
+        return redirect("imports:chat_detail", chat_id=chat_id)
+
+    contact, _ = Contact.objects.get_or_create(
+        normalized_name=normalized_name,
+        defaults={"display_name": display_name},
+    )
+    if contact.display_name != display_name:
+        contact.display_name = display_name
+        contact.save(update_fields=["display_name"])
+
+    if participant.contact_id != contact.id:
+        participant.contact = contact
+        participant.save(update_fields=["contact"])
+    return redirect("imports:chat_detail", chat_id=chat_id)
 
 
 def _normalize_media_name(value: str) -> str:
